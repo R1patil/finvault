@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinVault — Finance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --bg2: #111318;
+    --bg3: #181c24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8b909e;
+    --text3: #555a6a;
+    --accent: #22d3a5;
+    --accent2: #1ab88e;
+    --red: #f1504a;
+    --amber: #f5a623;
+    --blue: #4a9eff;
+    --purple: #a78bfa;
+    --font: 'Sora', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font); font-size:14px; min-height:100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34,211,165,0.08), transparent);
+  }
+  .login-box {
+    width:380px; background:var(--bg2); border:1px solid var(--border2);
+    border-radius:var(--radius-lg); padding:40px; animation: fadeUp 0.4s ease;
+  }
+  .login-logo { display:flex; align-items:center; gap:10px; margin-bottom:32px; }
+  .logo-mark {
+    width:36px; height:36px; background:var(--accent); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .logo-mark svg { width:18px; height:18px; fill:none; stroke:#0a0c10; stroke-width:2; stroke-linecap:round; }
+  .login-logo h1 { font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+  .login-logo span { color:var(--text2); font-size:13px; display:block; font-weight:400; }
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:12px; color:var(--text2); margin-bottom:6px; font-weight:500; letter-spacing:0.3px; text-transform:uppercase; }
+  .field input {
+    width:100%; background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius);
+    padding:10px 14px; color:var(--text); font-family:var(--font); font-size:14px; outline:none;
+    transition:border-color 0.15s;
+  }
+  .field input:focus { border-color:var(--accent); }
+  .btn-primary {
+    width:100%; padding:11px; background:var(--accent); border:none; border-radius:var(--radius);
+    color:#0a0c10; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer;
+    transition:background 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover { background:var(--accent2); }
+  .btn-primary:active { transform:scale(0.98); }
+  .login-hint { margin-top:20px; padding:14px; background:var(--bg3); border-radius:var(--radius); border:1px solid var(--border); }
+  .login-hint p { font-size:12px; color:var(--text2); line-height:1.7; }
+  .login-hint strong { color:var(--accent); font-family:var(--mono); }
+  #login-error { color:var(--red); font-size:13px; margin-bottom:12px; display:none; padding:10px; background:rgba(241,80,74,0.1); border-radius:var(--radius); border:1px solid rgba(241,80,74,0.2); }
+
+  /* APP SHELL */
+  #app { display:none; min-height:100vh; }
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0; width:220px;
+    background:var(--bg2); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 0; z-index:100;
+  }
+  .sidebar-logo { padding:0 20px 24px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .sidebar-logo .logo-mark { width:28px; height:28px; border-radius:6px; }
+  .sidebar-logo .logo-mark svg { width:14px; height:14px; }
+  .sidebar-logo span { font-size:16px; font-weight:600; }
+  nav a {
+    display:flex; align-items:center; gap:10px; padding:9px 20px;
+    color:var(--text2); text-decoration:none; font-size:13px; font-weight:500;
+    border-radius:0; transition:all 0.15s; cursor:pointer; border:none; background:none; width:100%; text-align:left;
+  }
+  nav a:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+  nav a.active { color:var(--accent); background:rgba(34,211,165,0.08); }
+  nav a svg { width:16px; height:16px; flex-shrink:0; }
+  .sidebar-bottom { margin-top:auto; padding:16px 20px; border-top:1px solid var(--border); }
+  .user-chip { display:flex; align-items:center; gap:10px; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:rgba(34,211,165,0.15); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--accent); }
+  .user-info p { font-size:12px; font-weight:500; }
+  .user-info span { font-size:11px; color:var(--text2); }
+  .logout-btn { background:none; border:none; color:var(--text3); cursor:pointer; font-size:11px; padding:4px 0; display:block; margin-top:8px; font-family:var(--font); transition:color 0.15s; }
+  .logout-btn:hover { color:var(--red); }
+
+  .main { margin-left:220px; padding:28px 32px; min-height:100vh; }
+  .page { display:none; }
+  .page.active { display:block; animation:fadeUp 0.3s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom:24px; }
+  .page-header h2 { font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+  .page-header p { color:var(--text2); font-size:13px; margin-top:3px; }
+
+  /* METRIC CARDS */
+  .metrics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .metric-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:18px 20px; position:relative; overflow:hidden;
+  }
+  .metric-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent-color, var(--accent)); border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+  .metric-card.red::before { --accent-color: var(--red); }
+  .metric-card.amber::before { --accent-color: var(--amber); }
+  .metric-card.blue::before { --accent-color: var(--blue); }
+  .metric-label { font-size:11px; color:var(--text2); font-weight:500; letter-spacing:0.4px; text-transform:uppercase; margin-bottom:10px; }
+  .metric-value { font-size:22px; font-weight:600; font-family:var(--mono); letter-spacing:-0.5px; }
+  .metric-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+
+  /* CHARTS */
+  .charts-row { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+  .chart-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px;
+  }
+  .chart-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .chart-sub { font-size:11px; color:var(--text2); margin-bottom:16px; }
+  .chart-wrap { position:relative; width:100%; height:200px; }
+
+  /* TABLES */
+  .table-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+  .table-header { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .table-header h3 { font-size:13px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; }
+  th { padding:10px 20px; text-align:left; font-size:11px; color:var(--text2); font-weight:500; letter-spacing:0.4px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  td { padding:12px 20px; font-size:13px; border-bottom:1px solid var(--border); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+  .badge {
+    display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px;
+    font-size:11px; font-weight:600; font-family:var(--mono);
+  }
+  .badge.income { background:rgba(34,211,165,0.1); color:var(--accent); }
+  .badge.expense { background:rgba(241,80,74,0.1); color:var(--red); }
+  .badge.admin { background:rgba(167,139,250,0.1); color:var(--purple); }
+  .badge.analyst { background:rgba(74,158,255,0.1); color:var(--blue); }
+  .badge.viewer { background:rgba(139,144,158,0.15); color:var(--text2); }
+  .badge.active { background:rgba(34,211,165,0.1); color:var(--accent); }
+  .badge.inactive { background:rgba(241,80,74,0.1); color:var(--red); }
+
+  /* TOOLBAR */
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .toolbar select, .toolbar input[type=date], .toolbar input[type=text] {
+    background:var(--bg2); border:1px solid var(--border2); border-radius:var(--radius);
+    padding:7px 12px; color:var(--text); font-family:var(--font); font-size:13px; outline:none;
+    transition:border-color 0.15s; cursor:pointer;
+  }
+  .toolbar select:focus, .toolbar input:focus { border-color:var(--accent); }
+  .btn-accent {
+    padding:7px 16px; background:var(--accent); border:none; border-radius:var(--radius);
+    color:#0a0c10; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer;
+    transition:background 0.15s;
+  }
+  .btn-accent:hover { background:var(--accent2); }
+  .btn-ghost {
+    padding:7px 14px; background:transparent; border:1px solid var(--border2); border-radius:var(--radius);
+    color:var(--text2); font-family:var(--font); font-size:13px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger {
+    padding:5px 12px; background:transparent; border:1px solid rgba(241,80,74,0.3); border-radius:var(--radius);
+    color:var(--red); font-family:var(--font); font-size:12px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-danger:hover { background:rgba(241,80,74,0.1); }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
+    z-index:1000; backdrop-filter:blur(4px); display:none;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--bg2); border:1px solid var(--border2); border-radius:var(--radius-lg);
+    width:440px; max-width:90vw; padding:28px; animation:fadeUp 0.25s ease;
+  }
+  .modal h3 { font-size:16px; font-weight:600; margin-bottom:20px; }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-grid .full { grid-column:1/-1; }
+  .form-field label { display:block; font-size:11px; color:var(--text2); margin-bottom:5px; font-weight:500; letter-spacing:0.3px; text-transform:uppercase; }
+  .form-field input, .form-field select, .form-field textarea {
+    width:100%; background:var(--bg3); border:1px solid var(--border2); border-radius:8px;
+    padding:9px 12px; color:var(--text); font-family:var(--font); font-size:13px; outline:none; transition:border-color 0.15s;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:var(--accent); }
+  .form-field textarea { resize:vertical; min-height:70px; }
+  .form-field select option { background:var(--bg3); }
+
+  /* PAGINATION */
+  .pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid var(--border); }
+  .pagination span { font-size:12px; color:var(--text2); }
+  .page-btns { display:flex; gap:6px; }
+  .page-btns button {
+    padding:5px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:6px;
+    color:var(--text2); font-family:var(--font); font-size:12px; cursor:pointer; transition:all 0.15s;
+  }
+  .page-btns button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .page-btns button:disabled { opacity:0.3; cursor:default; }
+
+  /* AUDIT LOG */
+  .audit-action {
+    display:inline-flex; align-items:center; padding:2px 8px; border-radius:4px;
+    font-size:11px; font-weight:600; font-family:var(--mono); background:rgba(167,139,250,0.1); color:var(--purple);
+  }
+  .audit-action.CREATE { background:rgba(34,211,165,0.1); color:var(--accent); }
+  .audit-action.UPDATE { background:rgba(74,158,255,0.1); color:var(--blue); }
+  .audit-action.DELETE { background:rgba(241,80,74,0.1); color:var(--red); }
+  .audit-action.LOGIN, .audit-action.REGISTER { background:rgba(245,166,35,0.1); color:var(--amber); }
+
+  /* LOADING */
+  .loading { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
+  .spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; margin-bottom:8px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .empty { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
+
+  /* TOAST */
+  #toast {
+    position:fixed; bottom:24px; right:24px; padding:12px 18px; border-radius:var(--radius);
+    font-size:13px; font-weight:500; z-index:9999; transform:translateY(80px); opacity:0;
+    transition:all 0.3s ease; pointer-events:none;
+  }
+  #toast.show { transform:translateY(0); opacity:1; }
+  #toast.success { background:#0d2b22; border:1px solid rgba(34,211,165,0.3); color:var(--accent); }
+  #toast.error { background:#2b0d0d; border:1px solid rgba(241,80,74,0.3); color:var(--red); }
+
+  /* ROLE BADGE ROW */
+  .role-info { display:flex; gap:8px; margin-bottom:4px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 18 18"><polyline points="2,14 6,8 10,11 16,4"/><line x1="14" y1="4" x2="16" y2="4"/><line x1="16" y1="4" x2="16" y2="6"/></svg>
+      </div>
+      <div>
+        <h1>FinVault</h1>
+        <span>Compliant Finance Dashboard</span>
+      </div>
+    </div>
+    <div id="login-error"></div>
+    <div class="field">
+      <label>API Base URL</label>
+      <input type="text" id="api-url" value="http://localhost:8000" placeholder="https://your-render-url.onrender.com"/>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" value="admin@finvault.io" placeholder="admin@finvault.io"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" value="Admin@1234" placeholder="••••••••"/>
+    </div>
+    <button class="btn-primary" onclick="login()">Sign in</button>
+    <div class="login-hint">
+      <p>Seeded accounts:<br/>
+        <strong>admin@finvault.io</strong> / Admin@1234<br/>
+        <strong>analyst@finvault.io</strong> / Analyst@1234<br/>
+        <strong>viewer@finvault.io</strong> / Viewer@1234
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 18 18" fill="none" stroke="#0a0c10" stroke-width="2" stroke-linecap="round"><polyline points="2,14 6,8 10,11 16,4"/></svg>
+      </div>
+      <span>FinVault</span>
+    </div>
+    <nav>
+      <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a onclick="showPage('records')" id="nav-records">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/></svg>
+        Records
+      </a>
+      <a onclick="showPage('users')" id="nav-users" class="admin-only" style="display:none">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+        Users
+      </a>
+      <a onclick="showPage('audit')" id="nav-audit" class="admin-only" style="display:none">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3z"/><path d="M6 7l1.5 1.5L10 6"/></svg>
+        Audit Log
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="avatar" id="user-avatar">??</div>
+        <div class="user-info">
+          <p id="user-name">—</p>
+          <span id="user-role-label">—</span>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p>Financial overview & activity summary</p>
+      </div>
+      <div class="metrics-grid" id="metrics-grid">
+        <div class="loading"><div class="spinner"></div><br/>Loading...</div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Monthly trends</div>
+          <div class="chart-sub">Income vs expense by month</div>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Expense breakdown</div>
+          <div class="chart-sub">By category</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="catChart"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>Recent activity</h3></div>
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
+          <tbody id="recent-tbody"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECORDS PAGE -->
+    <div class="page" id="page-records">
+      <div class="page-header">
+        <h2>Financial Records</h2>
+        <p>All income and expense entries</p>
+      </div>
+      <div class="toolbar">
+        <select id="filter-type" onchange="loadRecords()">
+          <option value="">All types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <select id="filter-category" onchange="loadRecords()">
+          <option value="">All categories</option>
+          <option value="salary">Salary</option>
+          <option value="revenue">Revenue</option>
+          <option value="investment">Investment</option>
+          <option value="operations">Operations</option>
+          <option value="marketing">Marketing</option>
+          <option value="infrastructure">Infrastructure</option>
+          <option value="payroll">Payroll</option>
+          <option value="tax">Tax</option>
+          <option value="compliance">Compliance</option>
+          <option value="other">Other</option>
+        </select>
+        <input type="date" id="filter-from" onchange="loadRecords()" title="From date"/>
+        <input type="date" id="filter-to" onchange="loadRecords()" title="To date"/>
+        <button class="btn-ghost" onclick="clearFilters()">Clear</button>
+        <button class="btn-accent analyst-only" id="btn-add-record" onclick="openRecordModal()" style="margin-left:auto">+ Add record</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Ref #</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+          <tbody id="records-tbody"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+        <div class="pagination">
+          <span id="records-info">—</span>
+          <div class="page-btns">
+            <button id="prev-btn" onclick="changePage(-1)" disabled>← Prev</button>
+            <button id="next-btn" onclick="changePage(1)" disabled>Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS PAGE -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <h2>User Management</h2>
+        <p>Manage users and role assignments</p>
+      </div>
+      <div class="toolbar">
+        <select id="filter-role" onchange="loadUsers()">
+          <option value="">All roles</option>
+          <option value="admin">Admin</option>
+          <option value="analyst">Analyst</option>
+          <option value="viewer">Viewer</option>
+        </select>
+        <button class="btn-accent" onclick="openUserModal()" style="margin-left:auto">+ Add user</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUDIT PAGE -->
+    <div class="page" id="page-audit">
+      <div class="page-header">
+        <h2>Audit Log</h2>
+        <p>Immutable record of all system actions</p>
+      </div>
+      <div class="toolbar">
+        <select id="filter-action" onchange="loadAudit()">
+          <option value="">All actions</option>
+          <option value="CREATE">Create</option>
+          <option value="UPDATE">Update</option>
+          <option value="DELETE">Delete</option>
+          <option value="LOGIN">Login</option>
+          <option value="REGISTER">Register</option>
+          <option value="ROLE_CHANGE">Role change</option>
+          <option value="STATUS_CHANGE">Status change</option>
+        </select>
+        <select id="filter-resource" onchange="loadAudit()">
+          <option value="">All resources</option>
+          <option value="financial_record">Financial record</option>
+          <option value="user">User</option>
+        </select>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Resource</th><th>ID</th><th>Payload</th></tr></thead>
+          <tbody id="audit-tbody"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD RECORD MODAL -->
+<div class="modal-overlay" id="record-modal">
+  <div class="modal">
+    <h3>New financial record</h3>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Amount (₹)</label>
+        <input type="number" id="r-amount" placeholder="10000" min="0.01" step="0.01"/>
+      </div>
+      <div class="form-field">
+        <label>Date</label>
+        <input type="date" id="r-date"/>
+      </div>
+      <div class="form-field">
+        <label>Type</label>
+        <select id="r-type">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Category</label>
+        <select id="r-category">
+          <option value="salary">Salary</option>
+          <option value="revenue">Revenue</option>
+          <option value="investment">Investment</option>
+          <option value="operations">Operations</option>
+          <option value="marketing">Marketing</option>
+          <option value="infrastructure">Infrastructure</option>
+          <option value="payroll">Payroll</option>
+          <option value="tax">Tax</option>
+          <option value="compliance">Compliance</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label>Reference # (optional)</label>
+        <input type="text" id="r-ref" placeholder="INV-2026-001"/>
+      </div>
+      <div class="form-field full">
+        <label>Description (optional)</label>
+        <textarea id="r-desc" placeholder="Brief description..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+      <button class="btn-accent" onclick="submitRecord()">Create record</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <h3>Create user</h3>
+    <div class="form-grid">
+      <div class="form-field full">
+        <label>Full name</label>
+        <input type="text" id="u-name" placeholder="Rahul Patil"/>
+      </div>
+      <div class="form-field full">
+        <label>Email</label>
+        <input type="email" id="u-email" placeholder="rahul@company.com"/>
+      </div>
+      <div class="form-field">
+        <label>Password</label>
+        <input type="password" id="u-password" placeholder="Min 8 chars"/>
+      </div>
+      <div class="form-field">
+        <label>Role</label>
+        <select id="u-role">
+          <option value="viewer">Viewer</option>
+          <option value="analyst">Analyst</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+      <button class="btn-accent" onclick="submitUser()">Create user</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+//let API = 'http://localhost:8000';
+let API = 'http://127.0.0.1:8000'
+let token = null;
+let currentUser = null;
+let recordsPage = 1;
+let recordsTotal = 0;
+let trendChart = null, catChart = null;
+
+// ─── API HELPER ──────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const r = await fetch(API + path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || 'Request failed (' + r.status + ')');
+  }
+  return r.json();
+}
+
+function fmt(n) {
+  return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 }).format(n);
+}
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+}
+function initials(name) {
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+// ─── TOAST ───────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+}
+
+// ─── AUTH ────────────────────────────────────────────────────
+async function login() {
+  API = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const data = await api('/api/v1/auth/login', {
+      method: 'POST', body: JSON.stringify({ email, password })
+    });
+    token = data.access_token;
+    currentUser = data.user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-name').textContent = currentUser.full_name.split(' ')[0];
+    document.getElementById('user-role-label').textContent = currentUser.role;
+    document.getElementById('user-avatar').textContent = initials(currentUser.full_name);
+    if (currentUser.role === 'admin') {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+    }
+    if (currentUser.role === 'analyst' || currentUser.role === 'admin') {
+      document.getElementById('btn-add-record').style.display = 'block';
+    } else {
+      document.getElementById('btn-add-record').style.display = 'none';
+    }
+    loadDashboard();
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  }
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+function logout() {
+  token = null; currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  if (catChart) { catChart.destroy(); catChart = null; }
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'records') loadRecords();
+  if (name === 'users') loadUsers();
+  if (name === 'audit') loadAudit();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const d = await api('/api/v1/dashboard/summary');
+
+    // Metrics
+    document.getElementById('metrics-grid').innerHTML = `
+      <div class="metric-card">
+        <div class="metric-label">Total income</div>
+        <div class="metric-value" style="color:var(--accent)">${fmt(d.total_income)}</div>
+        <div class="metric-sub">${d.income_by_category.length} categories</div>
+      </div>
+      <div class="metric-card red">
+        <div class="metric-label">Total expense</div>
+        <div class="metric-value" style="color:var(--red)">${fmt(d.total_expense)}</div>
+        <div class="metric-sub">${d.expense_by_category.length} categories</div>
+      </div>
+      <div class="metric-card ${parseFloat(d.net_balance) >= 0 ? '' : 'red'}">
+        <div class="metric-label">Net balance</div>
+        <div class="metric-value" style="color:${parseFloat(d.net_balance) >= 0 ? 'var(--accent)' : 'var(--red)'}">${fmt(d.net_balance)}</div>
+        <div class="metric-sub">${parseFloat(d.net_balance) >= 0 ? 'Surplus' : 'Deficit'}</div>
+      </div>
+      <div class="metric-card blue">
+        <div class="metric-label">Total records</div>
+        <div class="metric-value" style="color:var(--blue)">${d.record_count}</div>
+        <div class="metric-sub">Financial entries</div>
+      </div>
+    `;
+
+    // Trend chart
+    if (trendChart) trendChart.destroy();
+    const labels = d.monthly_trends.map(m => m.month_label + ' ' + m.year);
+    const incomeData = d.monthly_trends.map(m => parseFloat(m.income));
+    const expenseData = d.monthly_trends.map(m => parseFloat(m.expense));
+    trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Income', data: incomeData, backgroundColor: 'rgba(34,211,165,0.7)', borderRadius: 4, borderSkipped: false },
+          { label: 'Expense', data: expenseData, backgroundColor: 'rgba(241,80,74,0.6)', borderRadius: 4, borderSkipped: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { color: '#8b909e', font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          tooltip: { callbacks: { label: ctx => ' ₹' + ctx.raw.toLocaleString('en-IN') } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b909e', font: { size: 11 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b909e', font: { size: 11 }, callback: v => '₹' + (v/1000).toFixed(0) + 'k' } }
+        }
+      }
+    });
+
+    // Category donut
+    if (catChart) catChart.destroy();
+    const cats = d.expense_by_category.length ? d.expense_by_category : d.income_by_category;
+    const palette = ['#22d3a5','#f1504a','#4a9eff','#a78bfa','#f5a623','#5dcaa5','#d85a30','#378add'];
+    catChart = new Chart(document.getElementById('catChart'), {
+      type: 'doughnut',
+      data: {
+        labels: cats.map(c => c.category),
+        datasets: [{ data: cats.map(c => parseFloat(c.total)), backgroundColor: palette, borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#8b909e', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+          tooltip: { callbacks: { label: ctx => ' ₹' + ctx.raw.toLocaleString('en-IN') } }
+        }
+      }
+    });
+
+    // Recent activity
+    const tbody = document.getElementById('recent-tbody');
+    if (!d.recent_activity.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No records yet</td></tr>'; return; }
+    tbody.innerHTML = d.recent_activity.map(r => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text2)">${r.record_date}</td>
+        <td><span class="badge ${r.type}">${r.type}</span></td>
+        <td style="color:var(--text2);font-size:12px">${r.category}</td>
+        <td style="color:var(--text2)">${r.description || '—'}</td>
+        <td style="text-align:right;font-family:var(--mono);font-size:13px;font-weight:500;color:${r.type==='income'?'var(--accent)':'var(--red)'}">${fmt(r.amount)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    toast('Dashboard error: ' + e.message, 'error');
+  }
+}
+
+// ─── RECORDS ──────────────────────────────────────────────────
+async function loadRecords() {
+  const tbody = document.getElementById('records-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+  const params = new URLSearchParams({ page: recordsPage, page_size: 15 });
+  const type = document.getElementById('filter-type').value;
+  const cat = document.getElementById('filter-category').value;
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+  if (type) params.append('type', type);
+  if (cat) params.append('category', cat);
+  if (from) params.append('date_from', from);
+  if (to) params.append('date_to', to);
+  try {
+    const d = await api('/api/v1/records?' + params);
+    recordsTotal = d.total;
+    document.getElementById('records-info').textContent = `${d.total} record${d.total !== 1 ? 's' : ''} · Page ${d.page} of ${d.total_pages}`;
+    document.getElementById('prev-btn').disabled = d.page <= 1;
+    document.getElementById('next-btn').disabled = d.page >= d.total_pages;
+    if (!d.items.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No records found</td></tr>'; return; }
+    const canEdit = currentUser.role === 'admin';
+    tbody.innerHTML = d.items.map(r => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text2)">${r.record_date}</td>
+        <td><span class="badge ${r.type}">${r.type}</span></td>
+        <td style="color:var(--text2);font-size:12px">${r.category}</td>
+        <td style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description || '—'}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${r.reference_number || '—'}</td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:500;color:${r.type==='income'?'var(--accent)':'var(--red)'}">${fmt(r.amount)}</td>
+        <td>${canEdit ? `<button class="btn-danger" onclick="deleteRecord(${r.id})">Delete</button>` : ''}</td>
+      </tr>`).join('');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function clearFilters() {
+  ['filter-type','filter-category','filter-from','filter-to'].forEach(id => document.getElementById(id).value = '');
+  recordsPage = 1; loadRecords();
+}
+function changePage(dir) { recordsPage = Math.max(1, recordsPage + dir); loadRecords(); }
+
+async function deleteRecord(id) {
+  if (!confirm('Soft-delete record #' + id + '? It will be archived, not permanently removed.')) return;
+  try {
+    await api('/api/v1/records/' + id, { method: 'DELETE' });
+    toast('Record archived successfully'); loadRecords(); loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── USERS ────────────────────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+  const params = new URLSearchParams();
+  const role = document.getElementById('filter-role').value;
+  if (role) params.append('role', role);
+  try {
+    const users = await api('/api/v1/users?' + params);
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No users</td></tr>'; return; }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:26px;height:26px;font-size:10px">${initials(u.full_name)}</div>${u.full_name}</div></td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text2)">${u.email}</td>
+        <td><span class="badge ${u.role}">${u.role}</span></td>
+        <td><span class="badge ${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'active' : 'inactive'}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${fmtDate(u.created_at)}</td>
+        <td>${u.id !== currentUser.id ? `<button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="toggleUser(${u.id}, ${u.is_active})">${u.is_active ? 'Deactivate' : 'Activate'}</button>` : '<span style="font-size:11px;color:var(--text3)">You</span>'}</td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleUser(id, isActive) {
+  try {
+    await api('/api/v1/users/' + id, { method: 'PATCH', body: JSON.stringify({ is_active: !isActive }) });
+    toast('User status updated'); loadUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────
+async function loadAudit() {
+  const tbody = document.getElementById('audit-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+  const params = new URLSearchParams({ limit: 50 });
+  const action = document.getElementById('filter-action').value;
+  const resource = document.getElementById('filter-resource').value;
+  if (action) params.append('action', action);
+  if (resource) params.append('resource_type', resource);
+  try {
+    const logs = await api('/api/v1/dashboard/audit-logs?' + params);
+    if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No audit entries</td></tr>'; return; }
+    tbody.innerHTML = logs.map(l => {
+      const ts = new Date(l.timestamp).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      const payload = l.payload ? JSON.stringify(l.payload).substring(0, 60) + (JSON.stringify(l.payload).length > 60 ? '…' : '') : '—';
+      return `<tr>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap">${ts}</td>
+        <td style="font-size:12px">${l.actor_email || '#' + l.actor_id}</td>
+        <td><span class="audit-action ${l.action}">${l.action}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${l.resource_type}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${l.resource_id || '—'}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${JSON.stringify(l.payload) || ''}">${payload}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── MODALS ───────────────────────────────────────────────────
+function openRecordModal() {
+  document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('record-modal').classList.add('open');
+}
+function openUserModal() { document.getElementById('user-modal').classList.add('open'); }
+function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
+
+async function submitRecord() {
+  const amount = document.getElementById('r-amount').value;
+  const date = document.getElementById('r-date').value;
+  if (!amount || !date) { toast('Amount and date are required', 'error'); return; }
+  try {
+    await api('/api/v1/records', { method: 'POST', body: JSON.stringify({
+      amount: parseFloat(amount),
+      type: document.getElementById('r-type').value,
+      category: document.getElementById('r-category').value,
+      record_date: date,
+      description: document.getElementById('r-desc').value || null,
+      reference_number: document.getElementById('r-ref').value || null,
+    })});
+    toast('Record created'); closeModals();
+    ['r-amount','r-ref','r-desc'].forEach(id => document.getElementById(id).value = '');
+    loadRecords(); loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitUser() {
+  const name = document.getElementById('u-name').value;
+  const email = document.getElementById('u-email').value;
+  const password = document.getElementById('u-password').value;
+  if (!name || !email || !password) { toast('All fields required', 'error'); return; }
+  try {
+    await api('/api/v1/users', { method: 'POST', body: JSON.stringify({
+      full_name: name, email, password, role: document.getElementById('u-role').value
+    })});
+    toast('User created'); closeModals();
+    ['u-name','u-email','u-password'].forEach(id => document.getElementById(id).value = '');
+    loadUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+</body>
+</html>
