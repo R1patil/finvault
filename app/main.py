@@ -93,6 +93,19 @@ async def run_seed():
         logger.info("Seed complete — 3 users + 10 records created")
 
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://finvault-frontend.vercel.app",  # add your actual Vercel URL
+        "*",  # or keep this during dev
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. Run migrations
